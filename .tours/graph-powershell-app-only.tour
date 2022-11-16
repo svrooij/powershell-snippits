@@ -1,0 +1,124 @@
+{
+  "$schema": "https://aka.ms/codetour-schema",
+  "title": "Graph PowerShell App-Only",
+  "steps": [
+    {
+      "file": "local/self-signed-certificate.ps1",
+      "description": "Create a self-signed certificate in the Certificate Store of the current user.\r\n\r\nSet certificate name:\r\n>> $certFriendlyName = \"Unattended powershell m365\";\r\n\r\nSet Certificate subject:\r\n>> $certSubject = \"CN=powershell.invalid\";\r\n\r\nCreate the certificate:\r\n>> $cert = New-SelfSignedCertificate -NotAfter $(Get-Date).AddYears(1) -FriendlyName $certFriendlyName -CertStoreLocation cert:\\CurrentUser\\My -Subject $certSubject -KeyAlgorithm RSA -KeyLength 2048 -KeyExportPolicy NonExportable;\r\n\r\nSave certificate Thumbprint\r\n>> $certThumb = $cert.Thumbprint\r\n\r\nShow certificate details:\r\n\r\n>> $cert | Format-list\r\n\r\nThe should now be a new certificate in the Certificate Store of the current User.\r\n\r\nOpen User Certificate Store:\r\n>> certmgr.msc",
+      "line": 9,
+      "selection": {
+        "start": {
+          "line": 5,
+          "character": 1
+        },
+        "end": {
+          "line": 9,
+          "character": 228
+        }
+      },
+      "title": "Self-signed certificate"
+    },
+    {
+      "file": "graph/app-only-access.ps1",
+      "description": "Set required variables\r\n\r\nCertificate thumbprint (if not just generated):\r\n>> $certThumb = \"68EFF70301C7643FD3F6ABDDA796979BAAD2D231\"\r\n\r\nApp Name:\r\n>> $appName = \"Unattended Graph Access PowerShell\"\r\n\r\nResource Scope (the permission you wish to set for you app):\r\n>> $resourceScope = \"User.Read.All\"",
+      "line": 7,
+      "selection": {
+        "start": {
+          "line": 9,
+          "character": 1
+        },
+        "end": {
+          "line": 9,
+          "character": 33
+        }
+      },
+      "title": "Variables"
+    },
+    {
+      "file": "graph/app-only-access.ps1",
+      "description": "Set the correct execution policy, if not done yet.\r\n\r\n>> Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser;\r\n\r\nInstall the Applications Module\r\n\r\n>> Install-Module Microsoft.Graph.Applications -Scope CurrentUser\r\n\r\nConnect to Graph with `Application.ReadWrite.All`\r\n\r\n>> Connect-MgGraph -Scopes \"Application.ReadWrite.All\"",
+      "line": 15,
+      "selection": {
+        "start": {
+          "line": 18,
+          "character": 1
+        },
+        "end": {
+          "line": 18,
+          "character": 52
+        }
+      },
+      "title": "Install and connect"
+    },
+    {
+      "file": "graph/app-only-access.ps1",
+      "description": "Setup KeyCredential Hash, this is how you tell Azure that your application is going to use a certificate to authenticate itself.\r\n\r\n>>   $keyCreds = @([Microsoft.Graph.PowerShell.Models.IMicrosoftGraphKeyCredential]@{Type = \"AsymmetricX509Cert\";Usage = \"Verify\";StartDateTime = $cert.NotBefore;EndDateTime = $cert.NotAfter;Key = $cert.GetRawCertData();DisplayName = $cert.Subject;})\r\n\r\nYou can load the certificate from the store, if you did not just generate it.\r\n\r\n>> $cert = Get-ChildItem -Path Cert:\\CurrentUser\\My\\$($certThumb)",
+      "line": 24,
+      "selection": {
+        "start": {
+          "line": 21,
+          "character": 1
+        },
+        "end": {
+          "line": 21,
+          "character": 63
+        }
+      },
+      "title": "KeyCredentials"
+    },
+    {
+      "file": "graph/app-only-access.ps1",
+      "description": "Set Graph App ID:\r\n>> $resourceAppId = \"00000003-0000-0000-c000-000000000000\"\r\n\r\nLoad Graph Service Principal:\r\n>> $resourceServicePrincipal = Get-MgServicePrincipal -Filter \"AppId eq '$resourceAppId'\"\r\n\r\nLookup role based on `$resourceScope` value:\r\n>> $resourceAppRole = $resourceServicePrincipal.AppRoles | Where-Object { $_.Value -eq $resourceScope -and $_.AllowedMemberTypes -contains \"Application\" }\r\n\r\nCreate Resource Access Hash Table:\r\n\r\n>> $resourceAccess = @([Microsoft.Graph.PowerShell.Models.IMicrosoftGraphRequiredResourceAccess]@{ResourceAppId = $resourceAppId;ResourceAccess = @([Microsoft.Graph.PowerShell.Models.IMicrosoftGraphResourceAccess]@{Id = $resourceAppRole.Id;Type = \"Role\";})})",
+      "line": 40,
+      "title": "Resource Access"
+    },
+    {
+      "file": "graph/app-only-access.ps1",
+      "description": "Create the application 🎉\r\n\r\n>> $newApp = New-MgApplication -DisplayName $appName -SignInAudience AzureADMyOrg -KeyCredentials $keyCreds -RequiredResourceAccess $resourceAccess;\r\n\r\nSave the required details\r\n\r\n>> $appId = $newApp.AppId;$tenantId = $(Get-MgContext).TenantId;\r\n\r\n",
+      "line": 53,
+      "selection": {
+        "start": {
+          "line": 56,
+          "character": 1
+        },
+        "end": {
+          "line": 57,
+          "character": 39
+        }
+      },
+      "title": "Create application"
+    },
+    {
+      "file": "graph/app-only-access.ps1",
+      "description": "Create the service principal (yes this is something different).\r\n\r\n>> New-MgServicePrincipal -AppId $appId;\r\n\r\nAn App registration is and object that defines your application, this is a global directory even for apps that are only meant for your tenant. A service principal is an object in your local tenant that is used to login as some application. They share some details, but is not the same.\r\n\r\n**Note ⚠** Previously this also granted Admin Consent for all the requested scopes, it currently does not seem to be doing that anymore.\r\n\r\n## Grant Admin Consent\r\n\r\nGo to [Enterprise applications - adapp.cmd.ms](https://adapp.cmd.ms), find your application and press **Grant Admin Consent**.",
+      "line": 60,
+      "selection": {
+        "start": {
+          "line": 60,
+          "character": 1
+        },
+        "end": {
+          "line": 60,
+          "character": 38
+        }
+      },
+      "title": "Create service principal"
+    },
+    {
+      "file": "graph/app-only-access.ps1",
+      "description": "Connect to MgGraph with the newly created application.\r\n\r\n- ClientId: They did not make this easy, for connecting this is called a Client ID, in the portal it's called an `Application (Client) ID` and when creating the app we are stuck with `AppId`.\r\n- CertificateThumbprint: The thumbprint of the certificate we registered for our application. You can register multiple certificates for one application, but that is for some other time.\r\n- TenantId: You need to explicitly set the tenant, since there is no longer an user involved, and application credentials can be used for multiple tenants, if they have a [service principal][#7]\r\n\r\n>> Connect-MgGraph -ClientId $appId -TenantId $tenantId -CertificateThumbprint $certThumb;\r\n\r\nThis command will fail if something is not configured correctly, with an error similar to:\r\n\r\n> Connect-MgGraph: A configuration issue is preventing authentication - check the error message from the server for details. You can modify the configuration in the application registration portal. See https://aka.ms/msal-net-invalid-client for details.  Original exception: AADSTS700027: The certificate with identifier used to sign the client assertion is not registered on application. [Reason - The key was not found., Thumbprint of key used by client: 'A2B7DFC7AB2597A351833EEAC473AA9253BB1967', Please visit the Azure \r\nPortal, Graph Explorer or directly use MS Graph to see configured keys for app Id '1c480031-e7fe-4298-a4a6-49c9ac48a59a'. Review the documentation at https://docs.microsoft.com/en-us/graph/deployments to determine the corresponding service endpoint and https://docs.microsoft.com/en-us/graph/api/application-get?view=graph-rest-1.0&tabs=http to build a query request URL, such as 'https://graph.microsoft.com/beta/applications/1c480031-e7fe-4298-a4a6-49c9ac48a59a'].\r\n\r\nLets see the difference with this new connection:\r\n\r\n>> Get-MgContext | Format-List\r\n\r\n## Congratulations 🎉\r\n\r\nYou just created everything needed to use the Microsoft Graph PowerShell SDK without user interaction.",
+      "line": 65,
+      "selection": {
+        "start": {
+          "line": 65,
+          "character": 1
+        },
+        "end": {
+          "line": 65,
+          "character": 85
+        }
+      },
+      "title": "Connect App-only"
+    }
+  ]
+}

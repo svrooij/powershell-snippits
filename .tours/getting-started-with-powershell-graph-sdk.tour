@@ -1,0 +1,57 @@
+{
+  "$schema": "https://aka.ms/codetour-schema",
+  "title": "Getting started with PowerShell Graph SDK",
+  "steps": [
+    {
+      "file": "graph/getting-started.ps1",
+      "description": "Set the correct Execution policy\r\n\r\n>> Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser",
+      "line": 6,
+      "title": "Execution policy"
+    },
+    {
+      "file": "graph/getting-started.ps1",
+      "description": "Install the `Microsoft.Graph.Authentication` module. This module contains login logic and the [Find-MgGraphCommand][#3] snippet.\r\n\r\n>> Install-Module Microsoft.Graph.Authentication -Scope CurrentUser\r\n\r\n## Install ALL modules instead\r\n\r\nAlternativly you could install all 43 modules, but that makes you computer slow.\r\n\r\n>> Install-Module Microsoft.Graph -Scope CurrentUser",
+      "line": 9,
+      "title": "Install base module"
+    },
+    {
+      "file": "graph/getting-started.ps1",
+      "description": "In this sample I show you how to find the correct module for some Graph Resource.\r\n\r\n1. Pick a Graph resource [graph api](https://learn.microsoft.com/en-us/graph/api/overview?view=graph-rest-1.0)\r\n2. [list groups](https://learn.microsoft.com/en-us/graph/api/group-list)\r\n3. Copy the relative url (eg. `/groups`)\r\n4. Execute `Find-MgGraphCommand` with this url\r\n5. Note the **Module** and the **Permissions** (you can also use the first permissions in the graph documentation)\r\n\r\n>> Find-MgGraphCommand -Uri '/groups'",
+      "line": 15,
+      "title": "Find module and command"
+    },
+    {
+      "file": "graph/getting-started.ps1",
+      "description": "Install the Module that contains the **Get-MgGroup** command found in [previous step][#3].\r\n\r\n>> Install-Module Microsoft.Graph.Groups -Scope CurrentUser",
+      "line": 18,
+      "selection": {
+        "start": {
+          "line": 18,
+          "character": 1
+        },
+        "end": {
+          "line": 18,
+          "character": 57
+        }
+      },
+      "title": "Install Microsoft.Graph.Groups"
+    },
+    {
+      "file": "graph/getting-started.ps1",
+      "description": "Connect to Graph with the required scope found in [step 3][#3], this will open an interactive login in the default browser.\r\n\r\n>> Connect-MgGraph -Scopes \"Group.Read.All\"\r\n\r\n## Permissions or scopes?\r\n\r\nThis is the first mention of `Scopes`, Scopes are really common in authentication scenarios. You can see it as permissions you're requesting from the application. Each command in the **Microsoft.Graph** modules requires a different permission, in the Graph API all endpoints require one of the specified permissions. For reading groups you can also use `Directory.Read.All`, but that also gives access to users.",
+      "line": 21,
+      "title": "Connect to graph"
+    },
+    {
+      "file": "graph/getting-started.ps1",
+      "description": "List all groups where the displayName starts with 'test', to show you a first command and to display filter capabilities.\r\n\r\n>> Get-MgGroup -Filter \"startsWith(displayName, 'test')\"",
+      "line": 24,
+      "title": "Get groups"
+    },
+    {
+      "title": "First command executed",
+      "description": "# Congratulations 🎉\r\n\r\nYou just executed your first Graph SDK command in PowerShell!\r\n\r\nYou might like these tours:\r\n\r\n- [Graph PowerShell App-Only]"
+    }
+  ],
+  "isPrimary": true
+}
